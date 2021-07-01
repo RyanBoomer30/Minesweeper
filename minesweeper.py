@@ -106,12 +106,30 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
+        # Keep count of nearby mines
+        count = 0
+
+        for i in self.cells:
+            count += 1
+
+        if count == self.count:
+            return self.cells
+
+        return None
+
         raise NotImplementedError
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
+        # Keep count of nearby mines
+
+        if self.count == 0:
+            return self.cells
+
+        return None
+
         raise NotImplementedError
 
     def mark_mine(self, cell):
@@ -119,14 +137,24 @@ class Sentence():
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        raise NotImplementedError
+        newCell = set()
+        for i in self.cells:
+            if i == cell:
+                newCell.add(i)
+            else:
+                self.count -= 1
+        self.cells = newCell
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        raise NotImplementedError
+        newCell = set()
+        for i in self.cells:
+            if i != cell:
+                newCell.add(i)
+        self.cells = newCell
 
 
 class MinesweeperAI():
@@ -183,8 +211,47 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
+        self.moves_made.add(cell)
+        self.safes.add(cell)
+        neighbor = set()
+        # Loop over all cells within one row and column
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
 
-        raise NotImplementedError
+                # Ignore the cell itself
+                if (i, j) == cell:
+                    continue
+
+                # Update count if cell in bounds and is mine
+                if 0 <= i < self.height and 0 <= j < self.width:
+                    neighbor.add((i, j))
+        sentence = Sentence(neighbor, count)
+        self.knowledge.append(sentence)
+        newSentence = []
+        for i in self.knowledge:
+            if i.cells.issubset(sentence.cells):
+                newCell = sentence.cells - i.cells
+                newCount = sentence.count - i.count
+                if newCount == 0:
+                    for x in newCell:
+                        self.safes.add(x)
+                if newCount == len(newCell):
+                    for x in newCell:
+                        self.mines.add(x)
+                else:
+                    newSentence.append(Sentence(newCell, newCount))
+            elif sentence.cells.issubset(i.cells):
+                newCell = i.cells - sentence.cells
+                newCount = i.count - sentence.count
+                if newCount == 0:
+                    for x in newCell:
+                        self.safes.add(x)
+                if newCount == len(newCell):
+                    for x in newCell:
+                        self.mines.add(x)
+                else:
+                    newSentence.append(Sentence(newCell, newCount))
+        self.knowledge.extend(newSentence)
 
     def make_safe_move(self):
         """
@@ -195,6 +262,12 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
+        for i in self.safes:
+            for x in self.moves_made:
+                if i != x:
+                    return i
+        return None
+
         raise NotImplementedError
 
     def make_random_move(self):
@@ -204,4 +277,9 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
+        for i in self.mines:
+            for x in self.moves_made:
+                if i != x:
+                    return i
+        return None
         raise NotImplementedError
