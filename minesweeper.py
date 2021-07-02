@@ -212,8 +212,10 @@ class MinesweeperAI():
                if they can be inferred from existing knowledge
         """
         self.moves_made.add(cell)
-        self.safes.add(cell)
+        self.mark_safe(cell)
+
         neighbor = set()
+        neighborCount = count
         # Loop over all cells within one row and column
         for i in range(cell[0] - 1, cell[0] + 2):
             for j in range(cell[1] - 1, cell[1] + 2):
@@ -225,19 +227,27 @@ class MinesweeperAI():
                 # Update count if cell in bounds and is mine
                 if 0 <= i < self.height and 0 <= j < self.width:
                     neighbor.add((i, j))
-        sentence = Sentence(neighbor, count)
+                if (i, j) in self.mines:
+                    neighborCount -= 1
+        sentence = Sentence(neighbor, neighborCount)
         self.knowledge.append(sentence)
         newSentence = []
         for i in self.knowledge:
-            if i.cells.issubset(sentence.cells):
+            if i == sentence:
+                continue
+            elif i.cells.issubset(sentence.cells):
                 newCell = sentence.cells - i.cells
                 newCount = sentence.count - i.count
                 if newCount == 0:
                     for x in newCell:
-                        self.safes.add(x)
+                        self.mark_safe(x)
+                        print("safe")
+                        print(x)
                 if newCount == len(newCell):
                     for x in newCell:
-                        self.mines.add(x)
+                        self.mark_mine(x)
+                        print("mine")
+                        print(x)
                 else:
                     newSentence.append(Sentence(newCell, newCount))
             elif sentence.cells.issubset(i.cells):
@@ -245,13 +255,28 @@ class MinesweeperAI():
                 newCount = i.count - sentence.count
                 if newCount == 0:
                     for x in newCell:
-                        self.safes.add(x)
+                        self.mark_safe(x)
+                        print("safe")
+                        print(x)
                 if newCount == len(newCell):
                     for x in newCell:
-                        self.mines.add(x)
+                        self.mark_mine(x)
+                        print("mine")
+                        print(x)
                 else:
                     newSentence.append(Sentence(newCell, newCount))
         self.knowledge.extend(newSentence)
+        # nonDup = []
+        # for i in self.knowledge:
+        #     count = 0
+        #     for x in nonDup:
+        #         if i == x:
+        #             count += 1
+        #     if count == 0:
+        #         nonDup.append(i)
+        # self.knowledge = nonDup
+
+
 
     def make_safe_move(self):
         """
@@ -262,6 +287,7 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
+
         for i in self.safes:
             for x in self.moves_made:
                 if i != x:
@@ -279,6 +305,8 @@ class MinesweeperAI():
         """
         for i in self.mines:
             for x in self.moves_made:
+                print(i)
+                print(x)
                 if i != x:
                     return i
         return None
